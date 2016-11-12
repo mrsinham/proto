@@ -4,9 +4,9 @@ package parser
 
 import "fmt"
 
-const _Token_name = "WhitespaceIntegerTextUnknownEOFSlashOpeningBracketClosingBracketOpeningParentheseClosingParentheseColonDotEqualGoroutinePanicRecoveredRuntimeErrorCreatedByRunningIOWaitChanReceiveSendSyscall"
+const _Token_name = "WhitespaceNewLineIntegerTextEOFSlashUnknownOpeningBracketClosingBracketOpeningParentheseClosingParentheseColonDotEqualGoroutinePanicRecoveredRuntimeErrorCreatedByRunningIOWaitChanReceiveSendSyscallPointer"
 
-var _Token_index = [...]uint8{0, 10, 17, 21, 28, 31, 36, 50, 64, 81, 98, 103, 106, 111, 120, 125, 134, 141, 146, 153, 155, 162, 168, 172, 179, 183, 190}
+var _Token_index = [...]uint8{0, 10, 17, 24, 28, 31, 36, 43, 57, 71, 88, 105, 110, 113, 118, 127, 132, 141, 148, 153, 160, 162, 169, 175, 179, 186, 190, 197, 204}
 
 func (i Token) String() string {
 	if i < 0 || i >= Token(len(_Token_index)-1) {

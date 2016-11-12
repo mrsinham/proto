@@ -6,17 +6,28 @@ import (
 	"io"
 )
 
+// Token is an analyzed part of a content
 type Token int
 
 const (
 
 	// Misc
+
+	// Whitespace is space or tab
 	Whitespace Token = iota
+
+	// NewLine is \n
+	NewLine
+	// Integer is 0-9+
 	Integer
+	// Text is the default value
 	Text
-	Unknown
+	// EOF is the end of the content
 	EOF
+	// Slash well is Slash
 	Slash
+	// Unknown is when the analysis didnt succeed
+	Unknown
 
 	// symbols
 	OpeningBracket
@@ -43,12 +54,18 @@ const (
 	Receive
 	Send
 	Syscall
+
+	// Info
+	Pointer
 )
 
+// Scanner gives you a scanner capable of dividing the content of the underlying Reader
+// into tokens
 type Scanner struct {
 	r *bufio.Reader
 }
 
+// NewScanner gives you a new scanner
 func NewScanner(r io.Reader) *Scanner {
 	return &Scanner{
 		r: bufio.NewReader(r),
@@ -70,6 +87,7 @@ func (s *Scanner) unread() {
 	_ = s.r.UnreadRune()
 }
 
+// Scan gives the next token that it fetchs into the io.Reader
 func (s *Scanner) Scan() (tok Token, lit string) {
 	ch := s.read()
 
@@ -83,44 +101,76 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 		return s.scanIdentifiers()
 	}
 
+	if ch == '0' {
+		s.unread()
+		tok, lit = s.scanPointer()
+		if tok == Pointer {
+			return
+		}
+	}
+
 	if isInteger(ch) {
 		s.unread()
 		return s.scanInteger()
 	}
 
-	if ch == eof {
+	switch ch {
+	case eof:
 		return EOF, ""
-	}
-
-	if ch == '/' {
+	case '\n':
+		return NewLine, ""
+	case '/':
 		return Slash, string(ch)
-	}
-
-	if ch == '[' {
+	case '[':
 		return OpeningBracket, string(ch)
-	}
-
-	if ch == ']' {
+	case ']':
 		return ClosingBracket, string(ch)
-	}
-
-	if ch == '(' {
+	case '(':
 		return OpeningParenthese, string(ch)
-	}
-	if ch == ')' {
+	case ')':
 		return ClosingParenthese, string(ch)
-	}
-	if ch == ':' {
+	case ':':
 		return Colon, string(ch)
-	}
-	if ch == '.' {
+	case '.':
 		return Dot, string(ch)
-	}
-	if ch == '=' {
+	case '=':
 		return Equal, string(ch)
 	}
 
 	return Text, string(ch)
+}
+
+func (s *Scanner) scanPointer() (tok Token, lit string) {
+
+	var buf bytes.Buffer
+	// be sure of the beginning
+	ch := s.read()
+	if ch != '0' {
+		s.unread()
+		return Unknown, ""
+	}
+
+	buf.WriteRune(ch)
+
+	if ch = s.read(); ch != 'x' {
+		// return this char
+		s.unread()
+		//  return 0
+		s.unread()
+	}
+
+	buf.WriteRune(ch)
+
+	for {
+		ch = s.read()
+		if !isHexa(ch) {
+			s.unread()
+			break
+		}
+		buf.WriteRune(ch)
+	}
+
+	return Pointer, buf.String()
 }
 
 // scanWhitespace consumes the current rune and all contiguous whitespace.
