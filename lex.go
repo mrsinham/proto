@@ -75,7 +75,6 @@ func NewScanner(r io.Reader) *Scanner {
 var eof = rune(0)
 
 func (s *Scanner) read() rune {
-
 	ch, _, err := s.r.ReadRune()
 	if err != nil {
 		return eof
@@ -157,6 +156,7 @@ func (s *Scanner) scanPointer() (tok Token, lit string) {
 		s.unread()
 		//  return 0
 		s.unread()
+		return Unknown, ""
 	}
 
 	buf.WriteRune(ch)
