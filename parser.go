@@ -2,6 +2,7 @@ package parser
 
 import (
 	"io"
+	"strconv"
 )
 
 type Parser struct {
@@ -19,10 +20,66 @@ func NewParser(r io.Reader) *Parser {
 	}
 }
 
+func (p *Parser) Parse() (*State, error) {
+
+	s := &State{}
+parsingLoop:
+	for {
+		var tok Token
+		//var lit string
+		tok, _ = p.scan()
+		switch tok {
+		case EOF:
+			break parsingLoop
+		case Goroutine:
+			p.unscan()
+			p.parseRoutine()
+			//os.Exit(1)
+		}
+
+	}
+	return s, nil
+}
+
+func (p *Parser) parseRoutine() *Routine {
+
+	var tok Token
+	var lit string
+	tok, _ = p.scan()
+
+	if tok != Goroutine {
+		return nil
+	}
+
+	r := &Routine{}
+
+	tok, lit = p.scanWithoutSpaces()
+	if tok != Integer {
+		return nil
+	}
+
+	// we already know its an integer
+	// scan the routine ID
+	r.ID, _ = strconv.Atoi(lit)
+
+	return r
+
+}
+
+func (p *Parser) scanWithoutSpaces() (tok Token, lit string) {
+	for {
+		tok, lit = p.scan()
+		if tok != Whitespace && tok != NewLine {
+			break
+		}
+	}
+	return
+}
+
 func (p *Parser) scan() (tok Token, lit string) {
 
 	if p.buf.n > 0 {
-		tok, lit = p.buf.last[len(p.buf.last)-p.buf.n-1], p.buf.lit[len(p.buf.lit)-p.buf.n-1]
+		tok, lit = p.buf.last[len(p.buf.last)-p.buf.n], p.buf.lit[len(p.buf.lit)-p.buf.n]
 		p.buf.n--
 		return
 	}
@@ -36,5 +93,7 @@ func (p *Parser) scan() (tok Token, lit string) {
 }
 
 func (p *Parser) unscan() {
-	p.buf.n++
+	if p.buf.n+1 <= len(p.buf.last) {
+		p.buf.n++
+	}
 }
