@@ -1,20 +1,25 @@
 package parser
 
-type Frame struct {
+type Step struct {
+	Method   string
+	Args     []string
+	Location string
+	Line     int
 }
 
 type Routine struct {
 	ID         int
 	Event      Event
-	Stacktrace []*Frame
+	Stacktrace []*Step
 }
 
 type Event int
 
 const (
-	EventRunning Event = iota
-	EventIOWait
+	EventIOWait Event = iota
+	EventRunning
 	EventChanReceive
 	EventChanSend
 	EventSyscall
+	EventSelect
 )

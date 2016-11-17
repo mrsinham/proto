@@ -57,6 +57,9 @@ const (
 
 	// Info
 	Pointer
+
+	// Meta components
+	Frame
 )
 
 // Scanner gives you a scanner capable of dividing the content of the underlying Reader
@@ -228,28 +231,10 @@ func (s *Scanner) scanIdentifiers() (tok Token, lit string) {
 	st := buf.String()
 
 	switch st {
-	case "panic":
-		return Panic, st
-	case "recovered":
-		return Recovered, st
 	case "error":
 		return Error, st
 	case "goroutine":
 		return Goroutine, st
-	case "created":
-		return Created, st
-	case "by":
-		return By, st
-	case "runtime":
-		return Runtime, st
-	case "syscall":
-		return Syscall, st
-	case "running":
-		return Running, st
-	case "chan":
-		return Chan, st
-	case "receive":
-		return Receive, st
 	}
 
 	return Text, st

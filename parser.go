@@ -1,8 +1,13 @@
 package parser
 
 import (
+	"bytes"
 	"io"
 	"strconv"
+
+	"fmt"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type Parser struct {
@@ -48,6 +53,7 @@ func (p *Parser) parseRoutine() *Routine {
 	tok, _ = p.scan()
 
 	if tok != Goroutine {
+		p.unscan()
 		return nil
 	}
 
@@ -55,6 +61,7 @@ func (p *Parser) parseRoutine() *Routine {
 
 	tok, lit = p.scanWithoutSpaces()
 	if tok != Integer {
+		p.unscan()
 		return nil
 	}
 
@@ -62,7 +69,88 @@ func (p *Parser) parseRoutine() *Routine {
 	// scan the routine ID
 	r.ID, _ = strconv.Atoi(lit)
 
+	tok, lit = p.scanWithoutSpaces()
+	if tok != OpeningBracket {
+		p.unscan()
+		return nil
+	}
+
+	var event bytes.Buffer
+
+	for {
+		tok, lit = p.scan()
+		if tok == ClosingBracket {
+			break
+		}
+		event.WriteString(lit)
+	}
+
+	var e Event
+	switch event.String() {
+	case "running":
+		e = EventRunning
+	case "syscall":
+		e = EventSyscall
+	case "IO Wait":
+		e = EventIOWait
+	case "chan receive":
+		e = EventChanReceive
+	case "chan send":
+		e = EventChanSend
+	case "select":
+		e = EventSelect
+	default:
+		return nil
+	}
+
+	r.Event = e
+
+	tok, lit = p.scan()
+	if tok != Colon {
+		return nil
+	}
+	spew.Dump(r)
+
+	p.scanFrame()
+
 	return r
+
+}
+
+func (p *Parser) scanFrame() (*Step, error) {
+
+	var buf bytes.Buffer
+	// get the first text
+	var tok Token
+	var lit string
+	tok, lit = p.scanWithoutSpaces()
+	if tok != Text {
+		return nil, fmt.Errorf("waiting text, received %v", tok.String())
+	}
+
+	f := &Step{}
+	buf.WriteString(lit)
+
+	for {
+		tok, lit = p.scan()
+		if tok != Text && tok != Dot {
+			p.unscan()
+			break
+		}
+		buf.WriteString(lit)
+	}
+
+	f.Method = buf.String()
+
+	buf.Reset()
+
+	tok, lit = p.scan()
+	if tok != OpeningParenthese {
+		return nil
+	}
+
+	spew.Dump(f)
+	return nil, nil
 
 }
 
