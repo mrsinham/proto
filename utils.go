@@ -1,7 +1,7 @@
 package parser
 
 func isWhitespace(ch rune) bool {
-	return ch == ' ' || ch == '\t'
+	return ch == ' '
 }
 
 func isLetter(ch rune) bool {

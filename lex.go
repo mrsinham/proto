@@ -18,6 +18,8 @@ const (
 
 	// NewLine is \n
 	NewLine
+	// Tab is \t
+	Tab
 	// Integer is 0-9+
 	Integer
 	// Text is the default value
@@ -119,6 +121,8 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 	switch ch {
 	case eof:
 		return EOF, ""
+	case '\t':
+		return Tab, ""
 	case '\n':
 		return NewLine, ""
 	case '/':

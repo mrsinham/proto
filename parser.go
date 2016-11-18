@@ -111,13 +111,44 @@ func (p *Parser) parseRoutine() *Routine {
 	}
 	spew.Dump(r)
 
-	p.scanFrame()
+	var currStep *Step
+	// scanning steps
+	stepLoop:
+	for {
+		tok, _= p.scan()
+		if tok == NewLine {
+
+			currStep, _ = p.scanStep()
+			spew.Dump(currStep)
+
+			if currStep != nil {
+				r.Stacktrace = append(r.Stacktrace, currStep)
+			}
+
+			tok, _ = p.scan()
+
+
+			spew.Dump(tok)
+			if tok == NewLine {
+				tok, _ = p.scan()
+				if tok != Text {
+					break stepLoop
+				}
+				p.unscan()
+			}
+			p.unscan()
+
+		}
+
+	}
+	spew.Dump(r)
+
 
 	return r
 
 }
 
-func (p *Parser) scanFrame() (*Step, error) {
+func (p *Parser) scanStep() (*Step, error) {
 
 	var buf bytes.Buffer
 	// get the first text
@@ -133,7 +164,7 @@ func (p *Parser) scanFrame() (*Step, error) {
 
 	for {
 		tok, lit = p.scan()
-		if tok != Text && tok != Dot {
+		if tok == OpeningParenthese {
 			p.unscan()
 			break
 		}
@@ -146,11 +177,68 @@ func (p *Parser) scanFrame() (*Step, error) {
 
 	tok, lit = p.scan()
 	if tok != OpeningParenthese {
-		return nil
+		return nil, nil
 	}
 
-	spew.Dump(f)
-	return nil, nil
+	var args []string
+
+	// scanning args
+	for {
+		tok, lit = p.scan()
+		if tok == ClosingParenthese {
+			break
+		}
+		if tok == Pointer {
+			args = append(args, lit)
+		}
+	}
+
+	f.Args = args
+
+	tok, lit = p.scan()
+	if tok != NewLine {
+		return nil, nil
+	}
+
+	tok, lit = p.scan()
+	if tok != Tab {
+		return nil, nil
+	}
+
+
+	// scanning location
+	for {
+		tok, lit = p.scan()
+		// wtf ?
+		if tok == NewLine {
+			return nil, nil
+		}
+
+		if tok == Colon {
+			break
+		}
+		buf.WriteString(lit)
+	}
+
+	f.Location = buf.String()
+
+	buf.Reset()
+
+	tok, lit = p.scan()
+	if tok != Integer {
+		return nil, nil
+	}
+
+	f.Line, _ = strconv.Atoi(lit)
+
+	// space
+	p.scan()
+	// scan +
+	p.scan()
+	// scan pointer
+	p.scan()
+
+	return f, nil
 
 }
 
