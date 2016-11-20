@@ -2,12 +2,13 @@ package parser
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/pkg/errors"
 
 	"github.com/davecgh/go-spew/spew"
 )
@@ -133,6 +134,7 @@ stepLoop:
 
 			currStep, err = p.scanStep()
 			if err != nil {
+				err = errors.WithMessage(err, "cant scan goroutine step")
 				// TODO: if error then loop eternally
 				spew.Dump(err)
 				os.Exit(1)
@@ -158,33 +160,23 @@ stepLoop:
 
 	}
 
-	var buf bytes.Buffer
-
 	if tok == Text && lit == "created" {
 		tok, lit = p.scanWithoutSpaces()
 		if tok != Text && lit != "by" {
 			return nil, errors.New("was expecting 'created by'")
 		}
-
-		// whitespace
-		p.scan()
 		cb := &CreatedBy{}
 
-	createdLoop:
-		for {
-			tok, lit = p.scan()
-			if tok != Text && tok != Dot {
-				p.unscan()
-				break createdLoop
-			}
-			buf.WriteString(lit)
+		cb.Method, err = p.scanMethod()
+		if err != nil {
+			return nil, errors.Wrap(err, "cant scan created by method")
 		}
 
-		cb.Method = buf.String()
-		buf.Reset()
+		spew.Dump(cb)
 
 		cb.Location, cb.Line, err = p.scanLocation()
 		if err != nil {
+			err = errors.Wrap(err, "cant scan created by location")
 			return nil, err
 		}
 
@@ -198,22 +190,25 @@ stepLoop:
 
 }
 
-func (p *Parser) scanStep() (*Step, error) {
-
+func (p *Parser) scanMethod() (method string, err error) {
 	var buf bytes.Buffer
 	// get the first text
 	var tok Token
 	var lit string
 	tok, lit = p.scanWithoutSpaces()
 	if tok != Text {
-		return nil, fmt.Errorf("waiting text, received %v", tok.String())
+		err = errors.Errorf("waiting text, received %v", tok.String())
+		return
 	}
 
-	s := &Step{}
 	buf.WriteString(lit)
 
 	for {
 		tok, lit = p.scan()
+		if tok == NewLine {
+			p.unscan()
+			break
+		}
 		if tok == OpeningParenthese {
 			tok, lit = p.scan()
 			if tok == Pointer || tok == ClosingParenthese {
@@ -226,11 +221,23 @@ func (p *Parser) scanStep() (*Step, error) {
 		buf.WriteString(lit)
 	}
 
+	method = buf.String()
+	return
+}
+
+func (p *Parser) scanStep() (*Step, error) {
+
+	s := &Step{}
+	var err error
+
 	// TODO: problem with func 018
-	s.Method = buf.String()
+	s.Method, err = p.scanMethod()
+	if err != nil {
 
-	buf.Reset()
+	}
 
+	var tok Token
+	var lit string
 	tok, lit = p.scan()
 	if tok != OpeningParenthese {
 		return nil, nil
@@ -244,14 +251,13 @@ func (p *Parser) scanStep() (*Step, error) {
 		if tok == ClosingParenthese {
 			break
 		}
-		if tok == Pointer {	
+		if tok == Pointer {
 			args = append(args, lit)
 		}
 	}
 
 	s.Args = args
 
-	var err error
 	s.Location, s.Line, err = p.scanLocation()
 	if err != nil {
 		return nil, err
