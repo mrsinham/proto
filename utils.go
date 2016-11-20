@@ -5,7 +5,7 @@ func isWhitespace(ch rune) bool {
 }
 
 func isLetter(ch rune) bool {
-	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')
+	return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '·'
 }
 
 func isInteger(ch rune) bool {

@@ -2,15 +2,14 @@ package parser
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
+	"log"
+	"os"
 	"strconv"
 
-	"fmt"
-
 	"github.com/davecgh/go-spew/spew"
-	"os"
-	"errors"
-
 )
 
 type Parser struct {
@@ -31,6 +30,7 @@ func NewParser(r io.Reader) *Parser {
 func (p *Parser) Parse() (*State, error) {
 
 	s := &State{}
+	var err error
 parsingLoop:
 	for {
 		var tok Token
@@ -41,7 +41,13 @@ parsingLoop:
 			break parsingLoop
 		case Goroutine:
 			p.unscan()
-			p.parseRoutine()
+			var r *Routine
+			r, err = p.parseRoutine()
+			if err != nil {
+				line, col := p.s.GetPosition()
+				log.Fatalf("error found while parsing trace at line %v col %v : %v", line, col, err)
+			}
+			spew.Dump(r)
 			//os.Exit(1)
 		}
 
@@ -49,23 +55,22 @@ parsingLoop:
 	return s, nil
 }
 
-func (p *Parser) parseRoutine() *Routine {
+func (p *Parser) parseRoutine() (r *Routine, err error) {
 
 	var tok Token
 	var lit string
 	tok, _ = p.scan()
+	r = &Routine{}
 
 	if tok != Goroutine {
 		p.unscan()
-		return nil
+		return nil, errors.New("goroutine keyword not found")
 	}
-
-	r := &Routine{}
 
 	tok, lit = p.scanWithoutSpaces()
 	if tok != Integer {
 		p.unscan()
-		return nil
+		return nil, errors.New("goroutine id not found")
 	}
 
 	// we already know its an integer
@@ -75,7 +80,7 @@ func (p *Parser) parseRoutine() *Routine {
 	tok, lit = p.scanWithoutSpaces()
 	if tok != OpeningBracket {
 		p.unscan()
-		return nil
+		return nil, errors.New("opening event bracket not found")
 	}
 
 	var event bytes.Buffer
@@ -109,24 +114,21 @@ func (p *Parser) parseRoutine() *Routine {
 	case "runnable":
 		e = EventRunnable
 	default:
-		return nil
+		return nil, fmt.Errorf("event not standard %q", event.String())
 	}
 
 	r.Event = e
 
 	tok, lit = p.scan()
 	if tok != Colon {
-		return nil
+		return nil, errors.New("colon was expected after event")
 	}
 
-	spew.Dump(r)
-
 	var currStep *Step
-	var err error
 	// scanning steps
-	stepLoop:
+stepLoop:
 	for {
-		tok, _= p.scan()
+		tok, _ = p.scan()
 		if tok == NewLine {
 
 			currStep, err = p.scanStep()
@@ -159,17 +161,16 @@ func (p *Parser) parseRoutine() *Routine {
 	var buf bytes.Buffer
 
 	if tok == Text && lit == "created" {
-		//
 		tok, lit = p.scanWithoutSpaces()
 		if tok != Text && lit != "by" {
-			return nil
+			return nil, errors.New("was expecting 'created by'")
 		}
 
 		// whitespace
 		p.scan()
 		cb := &CreatedBy{}
 
-		createdLoop:
+	createdLoop:
 		for {
 			tok, lit = p.scan()
 			if tok != Text && tok != Dot {
@@ -182,18 +183,18 @@ func (p *Parser) parseRoutine() *Routine {
 		cb.Method = buf.String()
 		buf.Reset()
 
-		cb.Location, cb.Line = p.scanLocation()
-		if cb.Location == "" {
-			return nil
+		cb.Location, cb.Line, err = p.scanLocation()
+		if err != nil {
+			return nil, err
 		}
 
 		r.CreatedBy = cb
 
 	}
+
 	spew.Dump(r)
 
-
-	return r
+	return r, nil
 
 }
 
@@ -208,28 +209,25 @@ func (p *Parser) scanStep() (*Step, error) {
 		return nil, fmt.Errorf("waiting text, received %v", tok.String())
 	}
 
-	f := &Step{}
+	s := &Step{}
 	buf.WriteString(lit)
 
 	for {
 		tok, lit = p.scan()
 		if tok == OpeningParenthese {
-			tok,lit = p.scan()
-			if tok == Pointer || tok == ClosingParenthese{
+			tok, lit = p.scan()
+			if tok == Pointer || tok == ClosingParenthese {
 				p.unscan()
 				p.unscan()
 				break
 			}
-//			if tok == ClosingParenthese {
-//				p.un
-//			}
 			buf.WriteString("(")
 		}
 		buf.WriteString(lit)
 	}
 
 	// TODO: problem with func 018
-	f.Method = buf.String()
+	s.Method = buf.String()
 
 	buf.Reset()
 
@@ -246,30 +244,30 @@ func (p *Parser) scanStep() (*Step, error) {
 		if tok == ClosingParenthese {
 			break
 		}
-		if tok == Pointer {
+		if tok == Pointer {	
 			args = append(args, lit)
 		}
 	}
 
-	f.Args = args
+	s.Args = args
 
-
-	f.Location, f.Line = p.scanLocation()
-	if f.Location == "" || f.Line == 0 {
-		return nil, errors.New("unable to scan location")
+	var err error
+	s.Location, s.Line, err = p.scanLocation()
+	if err != nil {
+		return nil, err
 	}
-	spew.Dump(f)
 
-	return f, nil
+	return s, nil
 
 }
 
-func (p *Parser) scanLocation() (location string, line int) {
+func (p *Parser) scanLocation() (location string, line int, err error) {
 	var buf bytes.Buffer
 	var tok Token
 	var lit string
 	tok, lit = p.scan()
 	if tok != NewLine {
+		err = fmt.Errorf("expected new line, found %v", tok.String())
 		return
 	}
 
@@ -278,17 +276,18 @@ func (p *Parser) scanLocation() (location string, line int) {
 		tok, lit = p.scanWithoutSpaces()
 		// wtf ?
 		if tok == NewLine {
+			err = fmt.Errorf("expected new line, found %v", tok.String())
 			return
 		}
 
 		if tok == Colon {
+			fmt.Errorf("expected Colon, found %v", tok.String())
 			break
 		}
 		buf.WriteString(lit)
 	}
 
 	location = buf.String()
-
 
 	buf.Reset()
 

@@ -68,6 +68,8 @@ const (
 // into tokens
 type Scanner struct {
 	r *bufio.Reader
+	line int
+	col int
 }
 
 // NewScanner gives you a new scanner
@@ -84,6 +86,11 @@ func (s *Scanner) read() rune {
 	if err != nil {
 		return eof
 	}
+	if ch == '\n' {
+		s.line++
+		s.col = 0
+	}
+	s.col++
 	return ch
 }
 
@@ -243,4 +250,10 @@ func (s *Scanner) scanIdentifiers() (tok Token, lit string) {
 
 	return Text, st
 
+}
+
+func (s *Scanner) GetPosition() (line int, col int) {
+	line = s.line
+	col = s.col
+	return
 }
