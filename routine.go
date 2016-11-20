@@ -7,10 +7,17 @@ type Step struct {
 	Line     int
 }
 
+type CreatedBy struct {
+	Method string
+	Location string
+	Line int
+}
+
 type Routine struct {
 	ID         int
 	Event      Event
 	Stacktrace []*Step
+	CreatedBy *CreatedBy
 }
 
 type Event int
@@ -22,4 +29,7 @@ const (
 	EventChanSend
 	EventSyscall
 	EventSelect
+	EventSleep
+	EventSemAcquire
+	EventRunnable
 )

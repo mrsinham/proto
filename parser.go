@@ -8,6 +8,9 @@ import (
 	"fmt"
 
 	"github.com/davecgh/go-spew/spew"
+	"os"
+	"errors"
+
 )
 
 type Parser struct {
@@ -91,7 +94,7 @@ func (p *Parser) parseRoutine() *Routine {
 		e = EventRunning
 	case "syscall":
 		e = EventSyscall
-	case "IO Wait":
+	case "IO wait":
 		e = EventIOWait
 	case "chan receive":
 		e = EventChanReceive
@@ -99,6 +102,12 @@ func (p *Parser) parseRoutine() *Routine {
 		e = EventChanSend
 	case "select":
 		e = EventSelect
+	case "sleep":
+		e = EventSleep
+	case "semacquire":
+		e = EventSemAcquire
+	case "runnable":
+		e = EventRunnable
 	default:
 		return nil
 	}
@@ -109,17 +118,23 @@ func (p *Parser) parseRoutine() *Routine {
 	if tok != Colon {
 		return nil
 	}
+
 	spew.Dump(r)
 
 	var currStep *Step
+	var err error
 	// scanning steps
 	stepLoop:
 	for {
 		tok, _= p.scan()
 		if tok == NewLine {
 
-			currStep, _ = p.scanStep()
-			spew.Dump(currStep)
+			currStep, err = p.scanStep()
+			if err != nil {
+				// TODO: if error then loop eternally
+				spew.Dump(err)
+				os.Exit(1)
+			}
 
 			if currStep != nil {
 				r.Stacktrace = append(r.Stacktrace, currStep)
@@ -127,11 +142,10 @@ func (p *Parser) parseRoutine() *Routine {
 
 			tok, _ = p.scan()
 
-
-			spew.Dump(tok)
 			if tok == NewLine {
-				tok, _ = p.scan()
-				if tok != Text {
+				tok, lit = p.scan()
+				// end of trace or created by mention
+				if tok != Text || lit == "created" {
 					break stepLoop
 				}
 				p.unscan()
@@ -139,6 +153,41 @@ func (p *Parser) parseRoutine() *Routine {
 			p.unscan()
 
 		}
+
+	}
+
+	var buf bytes.Buffer
+
+	if tok == Text && lit == "created" {
+		//
+		tok, lit = p.scanWithoutSpaces()
+		if tok != Text && lit != "by" {
+			return nil
+		}
+
+		// whitespace
+		p.scan()
+		cb := &CreatedBy{}
+
+		createdLoop:
+		for {
+			tok, lit = p.scan()
+			if tok != Text && tok != Dot {
+				p.unscan()
+				break createdLoop
+			}
+			buf.WriteString(lit)
+		}
+
+		cb.Method = buf.String()
+		buf.Reset()
+
+		cb.Location, cb.Line = p.scanLocation()
+		if cb.Location == "" {
+			return nil
+		}
+
+		r.CreatedBy = cb
 
 	}
 	spew.Dump(r)
@@ -165,12 +214,21 @@ func (p *Parser) scanStep() (*Step, error) {
 	for {
 		tok, lit = p.scan()
 		if tok == OpeningParenthese {
-			p.unscan()
-			break
+			tok,lit = p.scan()
+			if tok == Pointer || tok == ClosingParenthese{
+				p.unscan()
+				p.unscan()
+				break
+			}
+//			if tok == ClosingParenthese {
+//				p.un
+//			}
+			buf.WriteString("(")
 		}
 		buf.WriteString(lit)
 	}
 
+	// TODO: problem with func 018
 	f.Method = buf.String()
 
 	buf.Reset()
@@ -195,23 +253,32 @@ func (p *Parser) scanStep() (*Step, error) {
 
 	f.Args = args
 
+
+	f.Location, f.Line = p.scanLocation()
+	if f.Location == "" || f.Line == 0 {
+		return nil, errors.New("unable to scan location")
+	}
+	spew.Dump(f)
+
+	return f, nil
+
+}
+
+func (p *Parser) scanLocation() (location string, line int) {
+	var buf bytes.Buffer
+	var tok Token
+	var lit string
 	tok, lit = p.scan()
 	if tok != NewLine {
-		return nil, nil
+		return
 	}
-
-	tok, lit = p.scan()
-	if tok != Tab {
-		return nil, nil
-	}
-
 
 	// scanning location
 	for {
-		tok, lit = p.scan()
+		tok, lit = p.scanWithoutSpaces()
 		// wtf ?
 		if tok == NewLine {
-			return nil, nil
+			return
 		}
 
 		if tok == Colon {
@@ -220,16 +287,17 @@ func (p *Parser) scanStep() (*Step, error) {
 		buf.WriteString(lit)
 	}
 
-	f.Location = buf.String()
+	location = buf.String()
+
 
 	buf.Reset()
 
 	tok, lit = p.scan()
 	if tok != Integer {
-		return nil, nil
+		return
 	}
 
-	f.Line, _ = strconv.Atoi(lit)
+	line, _ = strconv.Atoi(lit)
 
 	// space
 	p.scan()
@@ -238,7 +306,7 @@ func (p *Parser) scanStep() (*Step, error) {
 	// scan pointer
 	p.scan()
 
-	return f, nil
+	return
 
 }
 
