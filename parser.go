@@ -10,6 +10,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"strings"
+
+	"time"
+
 	"github.com/davecgh/go-spew/spew"
 )
 
@@ -35,8 +39,8 @@ func (p *Parser) Parse() (*State, error) {
 parsingLoop:
 	for {
 		var tok Token
-		//var lit string
 		tok, _ = p.scan()
+		//var lit string
 		switch tok {
 		case EOF:
 			break parsingLoop
@@ -48,11 +52,13 @@ parsingLoop:
 				line, col := p.s.GetPosition()
 				log.Fatalf("error found while parsing trace at line %v col %v : %v", line, col, err)
 			}
-			spew.Dump(r)
-			//os.Exit(1)
+			s.routines = append(s.routines, r)
+		case Panic:
+			s.cause = "panic"
 		}
 
 	}
+	spew.Dump(s)
 	return s, nil
 }
 
@@ -94,8 +100,14 @@ func (p *Parser) parseRoutine() (r *Routine, err error) {
 		event.WriteString(lit)
 	}
 
+	ev := event.String()
+	eva := strings.Split(ev, ", ")
+	if len(eva) == 0 {
+		return nil, errors.New("event is empty")
+	}
+
 	var e Event
-	switch event.String() {
+	switch eva[0] {
 	case "running":
 		e = EventRunning
 	case "syscall":
@@ -115,7 +127,23 @@ func (p *Parser) parseRoutine() (r *Routine, err error) {
 	case "runnable":
 		e = EventRunnable
 	default:
-		return nil, fmt.Errorf("event not standard %q", event.String())
+		return nil, fmt.Errorf("event not standard %q", eva[0])
+	}
+
+	if len(eva) >= 2 && strings.HasSuffix(eva[1], " minutes") {
+		dur := eva[1][:len(eva[1])-8]
+
+		var durInt int64
+		durInt, err = strconv.ParseInt(dur, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		r.Duration = time.Duration(durInt) * time.Minute
+	}
+
+	if len(eva) == 3 && eva[2] == "locked to thread" {
+		r.LockedToThread = true
 	}
 
 	r.Event = e
@@ -130,33 +158,33 @@ func (p *Parser) parseRoutine() (r *Routine, err error) {
 stepLoop:
 	for {
 		tok, _ = p.scan()
+		if tok != NewLine {
+			break stepLoop
+		}
+
+		currStep, err = p.scanStep()
+		if err != nil {
+			err = errors.WithMessage(err, "cant scan goroutine step")
+			// TODO: if error then loop eternally
+			spew.Dump(err)
+			os.Exit(1)
+		}
+
+		if currStep != nil {
+			r.Stacktrace = append(r.Stacktrace, currStep)
+		}
+
+		tok, _ = p.scan()
+
 		if tok == NewLine {
-
-			currStep, err = p.scanStep()
-			if err != nil {
-				err = errors.WithMessage(err, "cant scan goroutine step")
-				// TODO: if error then loop eternally
-				spew.Dump(err)
-				os.Exit(1)
-			}
-
-			if currStep != nil {
-				r.Stacktrace = append(r.Stacktrace, currStep)
-			}
-
-			tok, _ = p.scan()
-
-			if tok == NewLine {
-				tok, lit = p.scan()
-				// end of trace or created by mention
-				if tok != Text || lit == "created" {
-					break stepLoop
-				}
-				p.unscan()
+			tok, lit = p.scan()
+			// end of trace or created by mention
+			if tok != Text || lit == "created" {
+				break stepLoop
 			}
 			p.unscan()
-
 		}
+		p.unscan()
 
 	}
 
@@ -172,8 +200,6 @@ stepLoop:
 			return nil, errors.Wrap(err, "cant scan created by method")
 		}
 
-		spew.Dump(cb)
-
 		cb.Location, cb.Line, err = p.scanLocation()
 		if err != nil {
 			err = errors.Wrap(err, "cant scan created by location")
@@ -183,8 +209,6 @@ stepLoop:
 		r.CreatedBy = cb
 
 	}
-
-	spew.Dump(r)
 
 	return r, nil
 

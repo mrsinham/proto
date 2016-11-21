@@ -67,9 +67,9 @@ const (
 // Scanner gives you a scanner capable of dividing the content of the underlying Reader
 // into tokens
 type Scanner struct {
-	r *bufio.Reader
+	r    *bufio.Reader
 	line int
-	col int
+	col  int
 }
 
 // NewScanner gives you a new scanner
@@ -246,6 +246,13 @@ func (s *Scanner) scanIdentifiers() (tok Token, lit string) {
 		return Error, st
 	case "goroutine":
 		return Goroutine, st
+	case "panic":
+		ch := s.read()
+		if ch != ':' {
+			s.unread()
+		} else {
+			return Panic, st
+		}
 	}
 
 	return Text, st

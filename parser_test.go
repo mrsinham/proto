@@ -98,29 +98,115 @@ func TestParser_Parse(t *testing.T) {
 		name string
 		args args
 	}{
-//		{
-//			args: args{
-//				r: strings.NewReader(`
-//goroutine 3 [running]:
-//runtime.panic(0x550400, 0x70ad88)
-//	/home/dgryski/work/src/cvs/go/src/pkg/runtime/panic.c:266 +0xb6
-//testing.func·005()
-//	/home/dgryski/work/src/cvs/go/src/pkg/testing/testing.go:385 +0xe8
-//runtime.panic(0x550400, 0x70ad88)
-//	/home/dgryski/work/src/cvs/go/src/pkg/runtime/panic.c:248 +0x106
-//github.com/dgryski/go-shardedkv/storage/redis.(*Storage).Get(0xc21004d120, 0x57efa0, 0x5, 0x7febbe4eada8, 0x1, ...)
-//	/home/dgryski/Dropbox/GITS/gocode/src/github.com/dgryski/go-shardedkv/storage/redis/redis.go:29 +0xd8
-//github.com/dgryski/go-shardedkv/storagetest.StorageTest(0xc21004e090, 0x7febbe65f580, 0xc21004d120)
-//	/home/dgryski/Dropbox/GITS/gocode/src/github.com/dgryski/go-shardedkv/storagetest/storagetest.go:42 +0x550
-//github.com/dgryski/go-shardedkv/storage/redis.TestRedis(0xc21004e090)
-//	/home/dgryski/Dropbox/GITS/gocode/src/github.com/dgryski/go-shardedkv/storage/redis/redis_test.go:16 +0x135
-//testing.tRunner(0xc21004e090, 0x705aa0)
-//	/home/dgryski/work/src/cvs/go/src/pkg/testing/testing.go:391 +0x8b
-//created by testing.RunTests
-//	/home/dgryski/work/src/cvs/go/src/pkg/testing/testing.go:471 +0x8b2
-//				`),
-//			},
-//		},
+		//		{
+		//			args: args{
+		//				r: strings.NewReader(`
+		//goroutine 3 [running]:
+		//runtime.panic(0x550400, 0x70ad88)
+		//	/home/dgryski/work/src/cvs/go/src/pkg/runtime/panic.c:266 +0xb6
+		//testing.func·005()
+		//	/home/dgryski/work/src/cvs/go/src/pkg/testing/testing.go:385 +0xe8
+		//runtime.panic(0x550400, 0x70ad88)
+		//	/home/dgryski/work/src/cvs/go/src/pkg/runtime/panic.c:248 +0x106
+		//github.com/dgryski/go-shardedkv/storage/redis.(*Storage).Get(0xc21004d120, 0x57efa0, 0x5, 0x7febbe4eada8, 0x1, ...)
+		//	/home/dgryski/Dropbox/GITS/gocode/src/github.com/dgryski/go-shardedkv/storage/redis/redis.go:29 +0xd8
+		//github.com/dgryski/go-shardedkv/storagetest.StorageTest(0xc21004e090, 0x7febbe65f580, 0xc21004d120)
+		//	/home/dgryski/Dropbox/GITS/gocode/src/github.com/dgryski/go-shardedkv/storagetest/storagetest.go:42 +0x550
+		//github.com/dgryski/go-shardedkv/storage/redis.TestRedis(0xc21004e090)
+		//	/home/dgryski/Dropbox/GITS/gocode/src/github.com/dgryski/go-shardedkv/storage/redis/redis_test.go:16 +0x135
+		//testing.tRunner(0xc21004e090, 0x705aa0)
+		//	/home/dgryski/work/src/cvs/go/src/pkg/testing/testing.go:391 +0x8b
+		//created by testing.RunTests
+		//	/home/dgryski/work/src/cvs/go/src/pkg/testing/testing.go:471 +0x8b2
+		//				`),
+		//			},
+		//		},
+		{
+			args: args{
+				r: strings.NewReader(`
+goroutine 23885395 [syscall, 228 minutes, locked to thread]:
+net._C2func_getaddrinfo(0x1924010, 0x0, 0xc2087a9278, 0xc2087a91c8, 0x301befcd00000000, 0x0, 0x0)
+	/usr/src/go/src/net/:26 +0x55
+net.cgoLookupIPCNAME(0xc208bd45c0, 0x15, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/cgo_unix.go:96 +0x1c5
+net.cgoLookupIP(0xc208bd45c0, 0x15, 0x0, 0x0, 0x0, 0x0, 0x0, 0xc2080da240)
+	/usr/src/go/src/net/cgo_unix.go:148 +0x65
+net.lookupIP(0xc208bd45c0, 0x15, 0x0, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/lookup_unix.go:64 +0x5f
+net.func·025(0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/lookup.go:41 +0x55
+net.(*singleflight).doCall(0x9fba90, 0xc20819e840, 0xc208bd45c0, 0x15, 0xc2087a9548)
+	/usr/src/go/src/net/singleflight.go:91 +0x2f
+net.(*singleflight).Do(0x9fba90, 0xc208bd45c0, 0x15, 0xc2087a9548, 0x0, 0x0, 0x0, 0x0, 0x410d38)
+	/usr/src/go/src/net/singleflight.go:61 +0x280
+net.lookupIPMerge(0xc208bd45c0, 0x15, 0x0, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/lookup.go:42 +0xae
+net.lookupIPDeadline(0xc208bd45c0, 0x15, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/lookup.go:64 +0x12d
+net.resolveInternetAddr(0x8024d0, 0x3, 0xc208bd45c0, 0x19, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)
+	/usr/src/go/src/net/ipsock.go:285 +0x49b
+net.resolveAddr(0x7f5890, 0x4, 0x8024d0, 0x3, 0xc208bd45c0, 0x19, 0x0, 0x0, 0x0, 0x0, ...)
+	/usr/src/go/src/net/dial.go:110 +0x378
+net.(*Dialer).Dial(0xc2080c6580, 0x8024d0, 0x3, 0xc208bd45c0, 0x19, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/dial.go:158 +0xf6
+net.Dial(0x8024d0, 0x3, 0xc208bd45c0, 0x19, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/dial.go:143 +0x8a
+net/http.(*Transport).dial(0xc20806c090, 0x8024d0, 0x3, 0xc208bd45c0, 0x19, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/http/transport.go:481 +0xcf
+net/http.(*Transport).dialConn(0xc20806c090, 0x0, 0xc208216420, 0x5, 0xc208bd45c0, 0x19, 0xc2081627b8, 0x0, 0x0)
+	/usr/src/go/src/net/http/transport.go:564 +0x1678
+net/http.func·019()
+	/usr/src/go/src/net/http/transport.go:520 +0x42
+created by net/http.(*Transport).getConn
+	/usr/src/go/src/net/http/transport.go:522 +0x335
+
+*** Tons of these
+goroutine 24192220 [semacquire, 14 minutes]:
+sync.(*WaitGroup).Wait(0xc20819e840)
+	/usr/src/go/src/sync/waitgroup.go:132 +0x169
+net.(*singleflight).Do(0x9fba90, 0xc208ba3d20, 0x15, 0xc208445548, 0x0, 0x0, 0x0, 0x0, 0x410d38)
+	/usr/src/go/src/net/singleflight.go:53 +0x143
+net.lookupIPMerge(0xc208ba3d20, 0x15, 0x0, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/lookup.go:42 +0xae
+net.lookupIPDeadline(0xc208ba3d20, 0x15, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/lookup.go:64 +0x12d
+net.resolveInternetAddr(0x8024d0, 0x3, 0xc208ba3d20, 0x19, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, ...)
+	/usr/src/go/src/net/ipsock.go:285 +0x49b
+net.resolveAddr(0x7f5890, 0x4, 0x8024d0, 0x3, 0xc208ba3d20, 0x19, 0x0, 0xc200000000, 0x0, 0x0, ...)
+	/usr/src/go/src/net/dial.go:110 +0x378
+net.(*Dialer).Dial(0xc208bacf00, 0x8024d0, 0x3, 0xc208ba3d20, 0x19, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/dial.go:158 +0xf6
+net.Dial(0x8024d0, 0x3, 0xc208ba3d20, 0x19, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/dial.go:143 +0x8a
+net/http.(*Transport).dial(0xc20806c090, 0x8024d0, 0x3, 0xc208ba3d20, 0x19, 0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/http/transport.go:481 +0xcf
+net/http.(*Transport).dialConn(0xc20806c090, 0x0, 0xc2087ed350, 0x5, 0xc208ba3d20, 0x19, 0xc20858a000, 0x0, 0x0)
+	/usr/src/go/src/net/http/transport.go:564 +0x1678
+net/http.func·019()
+	/usr/src/go/src/net/http/transport.go:520 +0x42
+created by net/http.(*Transport).getConn
+	/usr/src/go/src/net/http/transport.go:522 +0x335
+
+*** A bunch of these
+goroutine 24117026 [select, 65 minutes]:
+net/http.(*Transport).getConn(0xc20806c090, 0xc208bd3e10, 0x0, 0xc208615620, 0x5, 0xc2081bb1c0, 0x19, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/http/transport.go:525 +0x608
+net/http.(*Transport).RoundTrip(0xc20806c090, 0xc208bd3e10, 0xc2086156b0, 0x0, 0x0)
+	/usr/src/go/src/net/http/transport.go:228 +0x4d4
+net/http.send(0xc208bd3e10, 0x7f8a47c85f00, 0xc20806c090, 0x2a, 0x0, 0x0)
+	/usr/src/go/src/net/http/client.go:219 +0x4fc
+net/http.(*Client).send(0x9fc3a0, 0xc208bd3e10, 0x2a, 0x0, 0x0)
+	/usr/src/go/src/net/http/client.go:142 +0x15b
+net/http.(*Client).doFollowingRedirects(0x9fc3a0, 0xc208bd3e10, 0x8bf428, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/http/client.go:367 +0xb25
+net/http.(*Client).Post(0x9fc3a0, 0xc208615620, 0x2a, 0x865a50, 0x21, 0x7f8a47c88e70, 0xc2081bb1a0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/http/client.go:441 +0x10d
+net/http.(*Client).PostForm(0x9fc3a0, 0xc208615620, 0x2a, 0xc208615650, 0x1, 0x0, 0x0)
+	/usr/src/go/src/net/http/client.go:461 +0x11c
+<**** MY CODE BELOW THIS LINE ****>
+				`),
+			},
+		},
 		{
 			args: args{
 				r: strings.NewReader(`

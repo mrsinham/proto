@@ -1,5 +1,7 @@
 package parser
 
+import "time"
+
 type Step struct {
 	Method   string
 	Args     []string
@@ -8,16 +10,18 @@ type Step struct {
 }
 
 type CreatedBy struct {
-	Method string
+	Method   string
 	Location string
-	Line int
+	Line     int
 }
 
 type Routine struct {
-	ID         int
-	Event      Event
-	Stacktrace []*Step
-	CreatedBy *CreatedBy
+	ID             int
+	Duration       time.Duration
+	Event          Event
+	Stacktrace     []*Step
+	CreatedBy      *CreatedBy
+	LockedToThread bool
 }
 
 type Event int
