@@ -125,6 +125,17 @@ func TestParser_Parse(t *testing.T) {
 			args: args{
 				r: strings.NewReader(`
 goroutine 23885395 [syscall, 228 minutes, locked to thread]:
+net.func·025(0x0, 0x0, 0x0, 0x0)
+	/usr/src/go/src/net/lookup.go:41 +0x55
+created by net/http.(*Transport).getConn
+	/usr/src/go/src/net/http/transport.go:522 +0x335
+				`),
+			},
+		},
+		{
+			args: args{
+				r: strings.NewReader(`
+goroutine 23885395 [syscall, 228 minutes, locked to thread]:
 net._C2func_getaddrinfo(0x1924010, 0x0, 0xc2087a9278, 0xc2087a91c8, 0x301befcd00000000, 0x0, 0x0)
 	/usr/src/go/src/net/:26 +0x55
 net.cgoLookupIPCNAME(0xc208bd45c0, 0x15, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0)

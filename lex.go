@@ -122,7 +122,7 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 
 	if isInteger(ch) {
 		s.unread()
-		return s.scanInteger()
+		return s.scanInteger([]rune(lit))
 	}
 
 	switch ch {
@@ -167,10 +167,9 @@ func (s *Scanner) scanPointer() (tok Token, lit string) {
 
 	if ch = s.read(); ch != 'x' {
 		// return this char
-		s.unread()
-		//  return 0
-		s.unread()
-		return Unknown, ""
+		//spew.Dump(buf.String(), string(ch), string(s.read()))
+		//os.Exit(1)
+		return Unknown, buf.String()
 	}
 
 	buf.WriteRune(ch)
@@ -209,8 +208,11 @@ func (s *Scanner) scanWhitespace() (tok Token, lit string) {
 	return Whitespace, buf.String()
 }
 
-func (s *Scanner) scanInteger() (tok Token, lit string) {
+func (s *Scanner) scanInteger(b []rune) (tok Token, lit string) {
 	var buf bytes.Buffer
+	for i := range b {
+		buf.WriteRune(b[i])
+	}
 	buf.WriteRune(s.read())
 
 	for {
@@ -221,7 +223,12 @@ func (s *Scanner) scanInteger() (tok Token, lit string) {
 			buf.WriteRune(ch)
 		}
 	}
-	return Integer, buf.String()
+
+	i := buf.String()
+	if len(i) > 0 && i[0] == '0' {
+		return Text, i
+	}
+	return Integer, i
 }
 
 func (s *Scanner) scanIdentifiers() (tok Token, lit string) {
